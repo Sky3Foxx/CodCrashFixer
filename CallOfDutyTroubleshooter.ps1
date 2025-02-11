@@ -1,5 +1,8 @@
 # troubleshooter.ps1
-# Data structure for Call of Duty troubleshooting data.
+# This PowerShell script acts as a Call of Duty Troubleshooter Helper.
+# It supports commands for listing games, listing issues, troubleshooting steps, and applying crash fixes.
+# The crash fix commands include a TEMP folder cleanup with errors suppressed.
+
 $gamesData = @{
     "Cold War" = @{
         "crashes" = @(
@@ -11,7 +14,7 @@ $gamesData = @{
             'Write-Host "Closing Cold War processes..."',
             'Stop-Process -Name "ColdWarGame" -ErrorAction SilentlyContinue',
             'Write-Host "Clearing temporary files..."',
-            'Remove-Item "$env:TEMP\*.*" -Force -Recurse'
+            'Remove-Item "$env:TEMP\*.*" -Force -Recurse -ErrorAction SilentlyContinue'
         )
         "lag" = @(
             "Check your network connection and try a wired connection if possible.",
@@ -39,7 +42,7 @@ $gamesData = @{
             'Write-Host "Closing BO6 processes..."',
             'Stop-Process -Name "BO6Game" -ErrorAction SilentlyContinue',
             'Write-Host "Clearing temporary files..."',
-            'Remove-Item "$env:TEMP\*.*" -Force -Recurse'
+            'Remove-Item "$env:TEMP\*.*" -Force -Recurse -ErrorAction SilentlyContinue'
         )
     }
 }
@@ -73,7 +76,7 @@ function List-Games {
 function List-Issues($game) {
     if ($gamesData.ContainsKey($game)) {
         Write-Host "Common issues for $game:"
-        # Exclude 'crash_commands' from the list.
+        # Exclude the 'crash_commands' key from the list.
         $issues = $gamesData[$game].Keys | Where-Object { $_ -ne "crash_commands" }
         foreach ($issue in $issues) {
             Write-Host " - $issue"
@@ -86,9 +89,8 @@ function List-Issues($game) {
 
 function Troubleshoot($game, $issue) {
     if ($gamesData.ContainsKey($game)) {
-        # Match issue in a case-insensitive way (excluding 'crash_commands').
-        $issueKey = $gamesData[$game].Keys |
-                    Where-Object { $_.ToLower() -eq $issue.ToLower() -and $_ -ne "crash_commands" }
+        # Match the issue in a case-insensitive way (excluding 'crash_commands').
+        $issueKey = $gamesData[$game].Keys | Where-Object { $_.ToLower() -eq $issue.ToLower() -and $_ -ne "crash_commands" }
         if ($issueKey) {
             Write-Host "Troubleshooting steps for $game - $issueKey:"
             foreach ($step in $gamesData[$game][$issueKey]) {
@@ -119,7 +121,7 @@ function Fix-Crashes($game) {
             'Write-Host "Closing game processes..."',
             'Stop-Process -Name "GameProcess" -ErrorAction SilentlyContinue',
             'Write-Host "Clearing temporary files..."',
-            'Remove-Item "$env:TEMP\*.*" -Force -Recurse'
+            'Remove-Item "$env:TEMP\*.*" -Force -Recurse -ErrorAction SilentlyContinue'
         )
     }
     foreach ($command in $commands) {
@@ -170,7 +172,7 @@ function Main {
             "troubleshoot" {
                 if ($tokens.Count -ge 3) {
                     $game = $tokens[1]
-                    # Combine all tokens after the game name to form the issue.
+                    # Combine all tokens after the game name to form the issue description.
                     $issue = ($tokens[2..($tokens.Count - 1)] -join " ")
                     Troubleshoot $game $issue
                 }
